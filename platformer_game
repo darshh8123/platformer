@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYLINE RUN — Platformer Campaign + Level Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#2b1055;
+    --sky-bot:#7c3a6e;
+    --panel:#1a1330;
+    --panel-raised:#241a42;
+    --line:#3d2c5e;
+    --coral:#ff6b5e;
+    --gold:#ffc94d;
+    --teal:#3ddac2;
+    --paper:#f4ecff;
+    --text-dim:#a99bc7;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--sky-top);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 14px 50px;
+  }
+
+  header{
+    width:100%;
+    max-width:840px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .brand{
+    font-family:'Press Start 2P', monospace;
+    font-size:18px;
+    color:var(--gold);
+    letter-spacing:1px;
+    line-height:1.5;
+  }
+  .brand span{color:var(--coral);}
+  .subtitle{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:4px;
+    letter-spacing:0.5px;
+  }
+
+  .tabs{ display:flex; gap:6px; }
+  .tab{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:9px 16px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    background:var(--panel-raised);
+    color:var(--text-dim);
+    cursor:pointer;
+  }
+  .tab.active{ background:var(--coral); color:#2b1055; border-color:var(--coral); font-weight:600; }
+
+  .hud{
+    width:100%;
+    max-width:840px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:10px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .hud b{ color:var(--gold); }
+  .level-title{
+    font-family:'Press Start 2P', monospace;
+    font-size:10px;
+    color:var(--paper);
+    letter-spacing:0.5px;
+  }
+  .best-line{
+    width:100%;
+    max-width:840px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--teal);
+    margin-bottom:8px;
+    opacity:0.85;
+  }
+  .best-line b{ color:var(--gold); }
+
+  .stage-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px;
+    box-shadow:0 14px 34px rgba(0,0,0,0.4);
+    position:relative;
+    max-width:100%;
+  }
+  #playCanvas{
+    display:block;
+    border-radius:3px;
+    image-rendering:pixelated;
+    max-width:100%;
+    height:auto;
+  }
+  .edit-scroll{
+    max-width:820px;
+    max-height:500px;
+    overflow:auto;
+    border-radius:3px;
+    background:#100a20;
+  }
+  #editCanvas{ display:block; cursor:crosshair; image-rendering:pixelated; }
+
+  .overlay{
+    position:absolute;
+    inset:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(10,6,20,0.78);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.2s ease;
+    border-radius:3px;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .overlay-card{
+    text-align:center;
+    font-family:'Press Start 2P', monospace;
+    max-width:90%;
+  }
+  .overlay-card h2{
+    color:var(--gold);
+    font-size:20px;
+    margin:0 0 14px;
+    text-shadow:0 3px 0 rgba(0,0,0,0.4);
+  }
+  .overlay-card .stats{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--paper);
+    line-height:1.9;
+    margin-bottom:16px;
+  }
+  .overlay-card .stats b{ color:var(--teal); }
+
+  /* ---------- Controls ---------- */
+  .controls{
+    width:100%;
+    max-width:840px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:16px;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, select, input[type=text], input[type=number]{
+    font-family:'Inter',sans-serif;
+    font-weight:500;
+    font-size:13px;
+    padding:9px 14px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    background:var(--panel-raised);
+    color:var(--paper);
+    cursor:pointer;
+  }
+  button:hover{ border-color:var(--gold); }
+  button:active{ transform:translateY(1px); }
+  button.primary{ background:var(--coral); color:#2b1055; border-color:var(--coral); font-weight:700; }
+  button.primary:hover{ background:#ff8377; }
+  button.ghost{ background:transparent; }
+  input[type=number]{ width:64px; cursor:text; }
+
+  /* ---------- Mobile pad ---------- */
+  .pad{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    align-items:center;
+  }
+  .pad button{
+    width:52px; height:52px;
+    font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+  }
+  .pad .jump{ background:var(--teal); color:#0f2b26; border-color:var(--teal); font-weight:700; }
+
+  /* ---------- Editor palette ---------- */
+  .palette{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin:10px 0;
+    width:100%;
+    max-width:840px;
+  }
+  .tile-btn{
+    width:40px; height:40px;
+    border-radius:4px;
+    border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+    cursor:pointer;
+    background:var(--panel-raised);
+  }
+  .tile-btn.active{ border-color:var(--gold); box-shadow:0 0 0 2px rgba(255,201,77,0.3); }
+  .tile-btn .swatch-ground{ width:24px; height:24px; background:linear-gradient(160deg,#8a6b3f,#5b4425); border-radius:2px; }
+  .tile-btn .swatch-spike{ width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:18px solid var(--coral); }
+  .tile-btn .swatch-coin{ width:18px;height:18px;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 2px rgba(0,0,0,0.2); }
+  .tile-btn .swatch-goal{ width:4px;height:24px;background:#ccc; position:relative; }
+  .tile-btn .swatch-goal::after{ content:"";position:absolute;top:0;left:4px;width:12px;height:9px;background:var(--teal); }
+  .tile-btn .swatch-player{ width:16px;height:22px;background:var(--teal);border-radius:3px 3px 0 0; }
+  .tile-btn .label{ display:none; }
+
+  textarea{
+    width:100%;
+    max-width:840px;
+    height:100px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    background:var(--panel-raised);
+    color:var(--paper);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:8px;
+    margin-top:8px;
+    resize:vertical;
+  }
+
+  footer{
+    max-width:840px;
+    width:100%;
+    margin-top:24px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    line-height:1.7;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+
+  .hidden{ display:none !important; }
+
+  @media (max-width:480px){
+    .brand{ font-size:14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">SKYLINE <span>RUN</span></div>
+    <div class="subtitle">8-Level Campaign &amp; Level Editor</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" id="tabPlay">Play</div>
+    <div class="tab" id="tabEdit">Editor</div>
+  </div>
+</header>
+
+<div class="best-line" id="bestLine">Loading best run…</div>
+
+<div class="hud">
+  <div class="level-title" id="levelTitle">LEVEL 1/8 — ROOFTOP BASICS</div>
+  <div>COINS <b id="coinStat">0/0</b></div>
+  <div>DEATHS <b id="deathStat">0</b></div>
+  <div>TIME <b id="timeStat">00:00</b></div>
+</div>
+
+<!-- PLAY MODE -->
+<div id="playView">
+  <div class="stage-wrap">
+    <canvas id="playCanvas" width="800" height="480"></canvas>
+    <div class="overlay" id="winOverlay">
+      <div class="overlay-card">
+        <h2 id="overlayHeading">CLEARED!</h2>
+        <div class="stats" id="winStats"></div>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="primary" id="btnNextLevel">Next Level</button>
+          <button id="btnReplay">Replay Level</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="deathFlash"></div>
+  </div>
+
+  <div class="controls">
+    <div class="btn-row">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);">Levels are played in order — clear one to unlock the next.</span>
+    </div>
+    <div class="btn-row">
+      <button id="btnRestart">Restart Level</button>
+      <button id="btnRestartCampaign">Restart Campaign</button>
+    </div>
+  </div>
+
+  <div class="pad">
+    <button id="padLeft">◀</button>
+    <button id="padRight">▶</button>
+    <button class="jump" id="padJump">JUMP</button>
+  </div>
+</div>
+
+<!-- EDIT MODE -->
+<div id="editView" class="hidden">
+  <div class="palette" id="palette"></div>
+
+  <div class="stage-wrap">
+    <div class="edit-scroll">
+      <canvas id="editCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="btn-row">
+      W <input type="number" id="newW" value="30" min="10" max="80">
+      H <input type="number" id="newH" value="15" min="10" max="15">
+      <button id="btnNewLevel">New Grid</button>
+      <button id="btnClearLevel">Clear</button>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="btnTestPlay">Test Play ▶</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="btn-row">
+      <button id="btnExport">Export JSON</button>
+      <button id="btnImport">Import JSON</button>
+      <button id="btnDownload">Download .json</button>
+      <label class="tab" style="cursor:pointer;">Upload .json
+        <input type="file" id="fileUpload" accept=".json" class="hidden">
+      </label>
+    </div>
+  </div>
+  <textarea id="jsonArea" placeholder="Exported / pasted level JSON appears here... (custom levels are for testing only and don't count toward campaign stats)"></textarea>
+</div>
+
+<footer>
+  Arrow keys / A,D to move · Space or W / Up to jump (tap higher = jump higher) · R to restart the current level.<br>
+  This is a campaign: clear Level 1 to unlock Level 2, and so on through Level 8. Your total time, deaths and coins across
+  all 8 levels are tallied at the end and compared against your saved best run.<br>
+  You have 5 deaths total for the whole campaign — hit the limit and it's game over, restarting from Level 1.<br>
+  Editor: pick a tile, then click or click-drag on the grid to paint. Right-click erases. Place exactly one player start.
+  Testing a custom level does not affect campaign stats.
+</footer>
+
+<script>
+(function(){
+
+  // ============================================================
+  // Tile grid authoring — build levels with coordinates, not by
+  // hand-counting characters in an ASCII string. Every level is
+  // just a plain object: { name, w, h, tiles: string[] } where
+  // tiles[y][x] is one of: . # ^ o g p
+  // ============================================================
+  function blankGrid(w,h){
+    const rows = [];
+    for(let y=0;y<h;y++) rows.push(new Array(w).fill('.'));
+    return rows;
+  }
+  function gridToTiles(rows){ return rows.map(r=>r.join('')); }
+  function set(rows,x,y,ch){ if(rows[y] && x>=0 && x<rows[y].length) rows[y][x]=ch; }
+  function fillRow(rows,y,x0,x1,ch){ for(let x=x0;x<=x1;x++) set(rows,x,y,ch); }
+
+  // ---------------- Levels 1-3: gentle intro ramp ----------------
+  function buildLevel1(){
+    const w=30,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    [12,13,22,23].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    [5,8,26].forEach(x=>set(g,x,floorY-1,'o'));
+    fillRow(g,9,16,18,'#');
+    set(g,17,8,'o');
+    set(g,28,floorY-1,'g');
+    return { name:"Rooftop Basics", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel2(){
+    const w=36,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    [8,9,20,21,29,30].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    fillRow(g,floorY-2,11,13,'#');
+    fillRow(g,floorY-4,14,16,'#');
+    set(g,12,floorY-3,'o');
+    set(g,15,floorY-5,'o');
+    fillRow(g,floorY-2,22,24,'#');
+    set(g,23,floorY-3,'o');
+    fillRow(g,floorY-2,31,34,'#');
+    set(g,32,floorY-3,'o');
+    set(g,33,floorY-2,'g');
+    return { name:"Fire Escape", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel3(){
+    const w=44,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    [6,7,15,16,17,26,27,36,37].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    [4,10].forEach(x=>set(g,x,floorY-1,'o'));
+    fillRow(g,floorY-1,12,13,'#');
+    fillRow(g,floorY-3,18,19,'#');
+    fillRow(g,floorY-1,21,22,'#');
+    set(g,12,floorY-2,'o');
+    set(g,18,floorY-4,'o');
+    fillRow(g,floorY-2,28,31,'#');
+    set(g,29,floorY-3,'o');
+    set(g,30,floorY-3,'o');
+    fillRow(g,floorY-2,33,35,'#');
+    fillRow(g,floorY-2,39,42,'#');
+    set(g,40,floorY-3,'o');
+    set(g,41,floorY-2,'g');
+    return { name:"Skyline Run", w, h, tiles: gridToTiles(g) };
+  }
+
+  // ---------------- Levels 4-8: escalating difficulty ----------------
+  // Gaps stay within the same physics-safe envelope used above
+  // (<=3 tile horizontal gaps at floor level, <=2 tile vertical steps
+  // between platforms) but platforms get narrower and hazards more
+  // frequent/longer, so the levels get harder without becoming unfair.
+
+  function buildLevel4(){
+    const w=48,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    [5,6,7,14,15,23,24,25,32,33,41,42,43].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    [3,10].forEach(x=>set(g,x,floorY-1,'o'));
+    // narrow 2-tile stepping stones over the first triple-gap
+    fillRow(g,floorY-1,9,10,'#');
+    fillRow(g,floorY-3,12,13,'#');
+    set(g,9,floorY-2,'o');
+    set(g,12,floorY-4,'o');
+    // single-tile hop chain over the second gap
+    set(g,17,floorY-1,'#');
+    set(g,20,floorY-2,'#');
+    set(g,20,floorY-3,'o');
+    // raised narrow platform run before third gap
+    fillRow(g,floorY-2,27,28,'#');
+    fillRow(g,floorY-3,30,31,'#');
+    set(g,27,floorY-3,'o');
+    set(g,30,floorY-4,'o');
+    // last gap into a 2-tile goal ledge
+    fillRow(g,floorY-2,36,37,'#');
+    set(g,36,floorY-3,'o');
+    fillRow(g,floorY-2,45,47,'#');
+    set(g,46,floorY-3,'o');
+    set(g,46,floorY-2,'g');
+    return { name:"Neon Ledges", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel5(){
+    const w=54,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    [4,5,6,12,13,14,20,21,22,28,29,30,36,37,38,44,45,46].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    set(g,2,floorY-1,'o');
+    // chain of single-tile floating platforms, alternating height
+    const chainX = [9,16,24,32,40];
+    chainX.forEach((x,i)=>{
+      const py = floorY-2-(i%2===0?0:1);
+      set(g,x,py,'#');
+      set(g,x,py-1,'o');
+    });
+    // narrow raised run near the end, then a final long gap
+    fillRow(g,floorY-2,42,43,'#');
+    set(g,42,floorY-3,'o');
+    fillRow(g,floorY-1,49,50,'#');
+    fillRow(g,floorY-3,51,52,'#');
+    set(g,49,floorY-2,'o');
+    set(g,51,floorY-4,'g');
+    return { name:"Storm Warning", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel6(){
+    const w=58,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    // long stretches of hazard floor broken only by single-tile islands
+    [3,4,5,6].forEach(x=>set(g,x,floorY,'^'));
+    set(g,1,floorY-1,'p');
+    set(g,7,floorY-1,'#'); set(g,7,floorY-2,'o');
+    [8,9,10,11].forEach(x=>set(g,x,floorY,'^'));
+    set(g,12,floorY-1,'#');
+    [13,14,15].forEach(x=>set(g,x,floorY,'^'));
+    set(g,16,floorY-1,'#'); set(g,16,floorY-2,'o');
+    [17,18,19].forEach(x=>set(g,x,floorY,'^'));
+    // stair up to a narrow high corridor
+    set(g,20,floorY-1,'#');
+    fillRow(g,floorY-3,22,23,'#');
+    fillRow(g,floorY-5,25,26,'#');
+    set(g,22,floorY-4,'o');
+    set(g,25,floorY-6,'o');
+    // descend back down across another hazard run
+    fillRow(g,floorY-3,29,30,'#');
+    fillRow(g,floorY-1,33,34,'#');
+    set(g,29,floorY-4,'o');
+    [37,38,39,40].forEach(x=>set(g,x,floorY,'^'));
+    set(g,41,floorY-1,'#'); set(g,41,floorY-2,'o');
+    [42,43,44].forEach(x=>set(g,x,floorY,'^'));
+    set(g,45,floorY-1,'#');
+    fillRow(g,floorY-2,50,51,'#');
+    set(g,50,floorY-3,'o');
+    fillRow(g,floorY-2,55,57,'#');
+    set(g,56,floorY-3,'o');
+    set(g,56,floorY-2,'g');
+    return { name:"Glass Corridor", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel7(){
+    const w=62,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    set(g,1,floorY-1,'p');
+    // vertical ascent: single-tile platforms climbing up the left side
+    const climb = [[8,floorY-1],[11,floorY-3],[8,floorY-5],[11,floorY-7],[8,floorY-9]];
+    climb.forEach((c,i)=>{ set(g,c[0],c[1],'#'); if(i%2===0) set(g,c[0],c[1]-1,'o'); });
+    set(g,8,floorY-9,'#');
+    // long high walkway across the top
+    fillRow(g,floorY-9,13,20,'#');
+    [15,18].forEach(x=>set(g,x,floorY-10,'o'));
+    // descend via narrow stepping platforms, hazards waiting below
+    [24,26,28,30].forEach((x,i)=>set(g,x,floorY-9+i*2,'#'));
+    for(let x=32;x<=48;x++) set(g,x,floorY,'^');
+    // 1-tile islands to cross the long hazard pit at the bottom
+    [33,37,41,45].forEach(x=>{ set(g,x,floorY-1,'#'); });
+    set(g,37,floorY-2,'o');
+    set(g,45,floorY-2,'o');
+    fillRow(g,floorY-2,50,51,'#');
+    set(g,50,floorY-3,'o');
+    fillRow(g,floorY-2,55,57,'#');
+    set(g,56,floorY-3,'o');
+    fillRow(g,floorY-2,60,61,'#');
+    set(g,60,floorY-2,'g');
+    return { name:"Midnight Ascent", w, h, tiles: gridToTiles(g) };
+  }
+
+  function buildLevel8(){
+    const w=66,h=15, floorY=12;
+    const g = blankGrid(w,h);
+    fillRow(g,floorY,0,w-1,'#');
+    set(g,1,floorY-1,'p');
+    set(g,3,floorY-1,'o');
+    // relentless alternating hazard + single-tile island run
+    let x = 5;
+    let toggle = 0;
+    while(x < 40){
+      const gapLen = 2 + (toggle%2);
+      for(let k=0;k<gapLen;k++) set(g,x+k,floorY,'^');
+      x += gapLen;
+      set(g,x,floorY-1-(toggle%2), '#');
+      if(toggle%3===0) set(g,x,floorY-2-(toggle%2),'o');
+      x += 1;
+      toggle++;
+    }
+    // high narrow gauntlet before the final approach
+    fillRow(g,floorY-4,41,42,'#');
+    set(g,41,floorY-5,'o');
+    fillRow(g,floorY-6,44,45,'#');
+    set(g,44,floorY-7,'o');
+    fillRow(g,floorY-4,47,48,'#');
+    for(let k=50;k<=58;k++) set(g,k,floorY,'^');
+    [51,54,57].forEach(gx=>set(g,gx,floorY-1,'#'));
+    set(g,54,floorY-2,'o');
+    fillRow(g,floorY-2,61,63,'#');
+    set(g,62,floorY-3,'o');
+    fillRow(g,floorY-2,64,65,'#');
+    set(g,65,floorY-2,'g');
+    return { name:"Final Approach", w, h, tiles: gridToTiles(g) };
+  }
+
+  const BUILTIN_LEVELS = [
+    buildLevel1(), buildLevel2(), buildLevel3(), buildLevel4(),
+    buildLevel5(), buildLevel6(), buildLevel7(), buildLevel8()
+  ];
+
+  // ============================================================
+  // Physics constants (see design note: max jump height ≈3.5
+  // tiles, max jump distance ≈4.5 tiles — every hand-placed gap
+  // above stays within 3 tiles horizontal / 2 tiles vertical).
+  // ============================================================
+  const TILE = 32;
+  const GRAVITY = 1700;
+  const JUMP_VEL = 620;
+  const MAX_SPEED = 220;
+  const ACCEL = 1400;
+  const FRICTION = 1500;
+  const PLAYER_W = 20, PLAYER_H = 28;
+  const CANVAS_W = 800, CANVAS_H = 480;
+
+  // ============================================================
+  // Engine state
+  // ============================================================
+  let level = null;       // {name,w,h,tiles:[string...]}
+  let grid = null;        // mutable array-of-arrays working copy
+  let player, camX, coinsTotal, coinsGot, deaths, seconds, running, won;
+  let keys = {};
+  let currentLevelIndex = 0;
+  let customLevel = null;
+  let playingCustom = false;
+  let lastTime = null;
+  let overlayMode = 'levelClear'; // 'levelClear' | 'campaignComplete' | 'customClear'
+
+  // Cumulative campaign stats across all 8 levels of the current run
+  let campaign = { totalSeconds:0, totalDeaths:0, totalCoinsGot:0, totalCoinsMax:0 };
+
+  function computeTotalCoinsMax(){
+    let total = 0;
+    BUILTIN_LEVELS.forEach(lvl=>{
+      lvl.tiles.forEach(row=>{ for(const ch of row) if(ch==='o') total++; });
+    });
+    return total;
+  }
+  campaign.totalCoinsMax = computeTotalCoinsMax();
+
+  const playCanvas = document.getElementById('playCanvas');
+  const ctx = playCanvas.getContext('2d');
+  const winOverlay = document.getElementById('winOverlay');
+  const winStats = document.getElementById('winStats');
+  const overlayHeading = document.getElementById('overlayHeading');
+  const deathFlash = document.getElementById('deathFlash');
+  const levelTitle = document.getElementById('levelTitle');
+  const coinStat = document.getElementById('coinStat');
+  const deathStat = document.getElementById('deathStat');
+  const timeStat = document.getElementById('timeStat');
+  const bestLine = document.getElementById('bestLine');
+  const btnNextLevel = document.getElementById('btnNextLevel');
+
+  function fmtTime(totalSecs){
+    const m = String(Math.floor(totalSecs/60)).padStart(2,'0');
+    const s = String(Math.floor(totalSecs%60)).padStart(2,'0');
+    return m+":"+s;
+  }
+
+  function tileAt(x,y){
+    if(y<0 || y>=grid.length || x<0 || x>=grid[0].length) return '.';
+    return grid[y][x];
+  }
+  function setTile(x,y,ch){ if(grid[y]) grid[y][x]=ch; }
+
+  function loadLevel(lvl, isCustom){
+    level = lvl;
+    playingCustom = !!isCustom;
+    grid = lvl.tiles.map(row=>row.split(''));
+    coinsTotal = 0; coinsGot = 0; deaths = 0; seconds = 0; won = false; running = true;
+    let startX=1, startY=0;
+    for(let y=0;y<grid.length;y++){
+      for(let x=0;x<grid[y].length;x++){
+        if(grid[y][x]==='o') coinsTotal++;
+        if(grid[y][x]==='p'){ startX=x; startY=y; grid[y][x]='.'; }
+      }
+    }
+    player = {
+      x: startX*TILE + (TILE-PLAYER_W)/2,
+      y: startY*TILE + (TILE-PLAYER_H),
+      vx:0, vy:0, grounded:false, startX, startY, invuln:0
+    };
+    camX = 0;
+    winOverlay.classList.remove('show');
+    levelTitle.textContent = playingCustom
+      ? lvl.name.toUpperCase()
+      : `LEVEL ${currentLevelIndex+1}/${BUILTIN_LEVELS.length} — ${lvl.name.toUpperCase()}`;
+    updateHud();
+    lastTime = null;
+  }
+
+  function respawn(){
+    player.x = player.startX*TILE + (TILE-PLAYER_W)/2;
+    player.y = player.startY*TILE + (TILE-PLAYER_H);
+    player.vx=0; player.vy=0; player.invuln=1.0;
+    deaths++;
+    updateHud();
+    deathFlash.classList.add('show');
+    setTimeout(()=>deathFlash.classList.remove('show'), 140);
+
+    if(!playingCustom){
+      const totalDeaths = campaign.totalDeaths + deaths;
+      if(totalDeaths >= MAX_DEATHS){
+        triggerGameOver();
+      }
+    }
+  }
+
+  function triggerGameOver(){
+    running = false;
+    won = true;
+    overlayMode = 'gameOver';
+    overlayHeading.textContent = 'GAME OVER';
+    const coinsSoFar = campaign.totalCoinsGot + coinsGot;
+    winStats.innerHTML =
+      `You hit <b>${MAX_DEATHS}/${MAX_DEATHS}</b> deaths — the campaign resets.<br>` +
+      `Reached Level <b>${currentLevelIndex+1}/${BUILTIN_LEVELS.length}</b><br>` +
+      `Coins Collected <b>${coinsSoFar}/${campaign.totalCoinsMax}</b>`;
+    btnNextLevel.textContent = 'Restart from Level 1';
+    btnNextLevel.style.display = 'inline-block';
+    winOverlay.classList.add('show');
+  }
+
+  const MAX_DEATHS = 5;
+
+  function updateHud(){
+    coinStat.textContent = coinsGot + "/" + coinsTotal;
+    const totalDeaths = playingCustom ? deaths : campaign.totalDeaths + deaths;
+    deathStat.textContent = playingCustom ? totalDeaths : (totalDeaths + "/" + MAX_DEATHS);
+    const totalSecs = playingCustom ? seconds : campaign.totalSeconds + seconds;
+    timeStat.textContent = fmtTime(totalSecs);
+  }
+
+  function solidTilesOverlapping(x,y,w,h){
+    const results = [];
+    const x0 = Math.floor(x/TILE), x1 = Math.floor((x+w-0.01)/TILE);
+    const y0 = Math.floor(y/TILE), y1 = Math.floor((y+h-0.01)/TILE);
+    for(let ty=y0;ty<=y1;ty++){
+      for(let tx=x0;tx<=x1;tx++){
+        if(tileAt(tx,ty)==='#') results.push({tx,ty});
+      }
+    }
+    return results;
+  }
+
+  function step(dt){
+    if(!running) return;
+    seconds += dt;
+
+    const left = keys['ArrowLeft']||keys['a'];
+    const right = keys['ArrowRight']||keys['d'];
+    if(left && !right) player.vx -= ACCEL*dt;
+    else if(right && !left) player.vx += ACCEL*dt;
+    else{
+      if(player.vx>0) player.vx = Math.max(0, player.vx - FRICTION*dt);
+      else if(player.vx<0) player.vx = Math.min(0, player.vx + FRICTION*dt);
+    }
+    player.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vx));
+
+    player.vy += GRAVITY*dt;
+    player.vy = Math.min(player.vy, 1400);
+
+    player.x += player.vx*dt;
+    for(const t of solidTilesOverlapping(player.x, player.y, PLAYER_W, PLAYER_H)){
+      if(player.vx>0){ player.x = t.tx*TILE - PLAYER_W; player.vx=0; }
+      else if(player.vx<0){ player.x = (t.tx+1)*TILE; player.vx=0; }
+    }
+    player.y += player.vy*dt;
+    player.grounded = false;
+    for(const t of solidTilesOverlapping(player.x, player.y, PLAYER_W, PLAYER_H)){
+      if(player.vy>0){ player.y = t.ty*TILE - PLAYER_H; player.vy=0; player.grounded=true; }
+      else if(player.vy<0){ player.y = (t.ty+1)*TILE; player.vy=0; }
+    }
+
+    if(player.invuln>0) player.invuln -= dt;
+
+    const cx0 = Math.floor(player.x/TILE), cx1 = Math.floor((player.x+PLAYER_W-0.01)/TILE);
+    const cy0 = Math.floor(player.y/TILE), cy1 = Math.floor((player.y+PLAYER_H-0.01)/TILE);
+    for(let ty=cy0; ty<=cy1; ty++){
+      for(let tx=cx0; tx<=cx1; tx++){
+        const ch = tileAt(tx,ty);
+        if(ch==='o'){ setTile(tx,ty,'.'); coinsGot++; updateHud(); }
+        else if(ch==='^' && player.invuln<=0){ respawn(); }
+        else if(ch==='g'){ finishLevel(); }
+      }
+    }
+
+    if(player.y > level.h*TILE + TILE*2) respawn();
+
+    const levelPx = level.w*TILE;
+    camX = Math.max(0, Math.min(player.x - CANVAS_W/2, Math.max(0, levelPx-CANVAS_W)));
+    updateHud();
+  }
+
+  // ---------------- best-run persistence ----------------
+  async function loadBestRun(){
+    try{
+      const res = await window.storage.get('best-run', false);
+      if(!res){ bestLine.textContent = 'No completed run yet — clear all 8 levels to set your first best time.'; return null; }
+      const b = JSON.parse(res.value);
+      bestLine.innerHTML = `Best run so far — Time <b>${fmtTime(b.time)}</b> · Deaths <b>${b.deaths}</b> · Coins <b>${b.coins}/${b.coinsMax}</b>`;
+      return b;
+    }catch(e){
+      bestLine.textContent = 'No completed run yet — clear all 8 levels to set your first best time.';
+      return null;
+    }
+  }
+  loadBestRun();
+
+  async function finishCampaign(){
+    overlayMode = 'campaignComplete';
+    overlayHeading.textContent = 'CAMPAIGN CLEARED!';
+    const totalTime = campaign.totalSeconds;
+    const totalDeaths = campaign.totalDeaths;
+    const totalCoins = campaign.totalCoinsGot;
+    const coinsMax = campaign.totalCoinsMax;
+
+    let isNewBest = false;
+    let best = { time: totalTime, deaths: totalDeaths, coins: totalCoins, coinsMax };
+    try{
+      const existing = await window.storage.get('best-run', false);
+      const existingBest = existing ? JSON.parse(existing.value) : null;
+      isNewBest = !existingBest || totalTime < existingBest.time;
+      if(isNewBest){
+        await window.storage.set('best-run', JSON.stringify(best), false);
+      } else {
+        best = existingBest;
+      }
+    }catch(e){
+      // storage unavailable — still show this run's results
+    }
+
+    winStats.innerHTML =
+      `THIS RUN<br>` +
+      `Total Time <b>${fmtTime(totalTime)}</b><br>` +
+      `Total Deaths <b>${totalDeaths}</b><br>` +
+      `Coins Collected <b>${totalCoins}/${coinsMax}</b><br><br>` +
+      `BEST RUN${isNewBest ? ' — NEW BEST!' : ''}<br>` +
+      `Time <b>${fmtTime(best.time)}</b> · Deaths <b>${best.deaths}</b> · Coins <b>${best.coins}/${best.coinsMax}</b>`;
+
+    bestLine.innerHTML = `Best run so far — Time <b>${fmtTime(best.time)}</b> · Deaths <b>${best.deaths}</b> · Coins <b>${best.coins}/${best.coinsMax}</b>`;
+
+    btnNextLevel.textContent = 'Play Again';
+    winOverlay.classList.add('show');
+  }
+
+  function finishLevel(){
+    if(won) return;
+    won = true; running = false;
+
+    if(playingCustom){
+      overlayMode = 'customClear';
+      overlayHeading.textContent = 'CLEARED!';
+      winStats.innerHTML = `Coins <b>${coinsGot}/${coinsTotal}</b><br>Deaths <b>${deaths}</b><br>Time <b>${fmtTime(seconds)}</b><br><span style="color:var(--text-dim);font-size:10px;">(custom level — not counted in campaign stats)</span>`;
+      btnNextLevel.style.display = 'none';
+      winOverlay.classList.add('show');
+      return;
+    }
+
+    campaign.totalSeconds += seconds;
+    campaign.totalDeaths += deaths;
+    campaign.totalCoinsGot += coinsGot;
+
+    if(currentLevelIndex === BUILTIN_LEVELS.length-1){
+      finishCampaign();
+    } else {
+      overlayMode = 'levelClear';
+      overlayHeading.textContent = 'CLEARED!';
+      winStats.innerHTML = `LEVEL ${currentLevelIndex+1}/${BUILTIN_LEVELS.length} CLEARED<br>Coins <b>${coinsGot}/${coinsTotal}</b><br>Deaths <b>${deaths}</b><br>Time <b>${fmtTime(seconds)}</b>`;
+      btnNextLevel.textContent = 'Next Level ▶';
+      btnNextLevel.style.display = 'inline-block';
+      winOverlay.classList.add('show');
+    }
+  }
+
+  // ---------------- rendering ----------------
+  function drawSky(){
+    const g = ctx.createLinearGradient(0,0,0,CANVAS_H);
+    g.addColorStop(0,'#2b1055');
+    g.addColorStop(1,'#7c3a6e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+    ctx.fillStyle = 'rgba(20,10,40,0.5)';
+    for(let i=-1;i<12;i++){
+      const bx = ((i*140) - (camX*0.3)%140);
+      const bh = 90 + ((i*53)%80);
+      ctx.fillRect(bx, CANVAS_H-bh-40, 90, bh);
+    }
+    ctx.fillStyle = 'rgba(255,201,77,0.85)';
+    ctx.beginPath(); ctx.arc(CANVAS_W-120, 90, 46, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawTile(ch, px, py){
+    if(ch==='#'){
+      const g = ctx.createLinearGradient(px,py,px,py+TILE);
+      g.addColorStop(0,'#a3855a'); g.addColorStop(1,'#5b4425');
+      ctx.fillStyle = g;
+      ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(px,py+TILE-4,TILE,4);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.strokeRect(px+0.5,py+0.5,TILE-1,TILE-1);
+    } else if(ch==='^'){
+      ctx.fillStyle = '#ff6b5e';
+      ctx.beginPath();
+      ctx.moveTo(px,py+TILE); ctx.lineTo(px+TILE/2,py+TILE-24); ctx.lineTo(px+TILE,py+TILE);
+      ctx.closePath(); ctx.fill();
+    } else if(ch==='o'){
+      const t = performance.now()/300;
+      const squish = Math.abs(Math.sin(t));
+      ctx.fillStyle = '#ffc94d';
+      ctx.beginPath();
+      ctx.ellipse(px+TILE/2, py+TILE/2, 9*squish+3, 9, 0, 0, Math.PI*2);
+      ctx.fill();
+    } else if(ch==='g'){
+      ctx.fillStyle = '#ccc';
+      ctx.fillRect(px+TILE/2-2, py-16, 4, TILE+16);
+      ctx.fillStyle = '#3ddac2';
+      ctx.beginPath();
+      ctx.moveTo(px+TILE/2+2, py-16);
+      ctx.lineTo(px+TILE/2+22, py-8);
+      ctx.lineTo(px+TILE/2+2, py);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  function drawLevel(){
+    const x0 = Math.floor(camX/TILE), x1 = Math.ceil((camX+CANVAS_W)/TILE);
+    for(let y=0;y<grid.length;y++){
+      for(let x=Math.max(0,x0); x<Math.min(grid[y].length,x1+1); x++){
+        const ch = grid[y][x];
+        if(ch==='.') continue;
+        drawTile(ch, x*TILE-camX, y*TILE);
+      }
+    }
+  }
+
+  function drawPlayer(){
+    const px = player.x - camX, py = player.y;
+    const flash = player.invuln>0 && Math.floor(performance.now()/80)%2===0;
+    ctx.fillStyle = flash ? 'rgba(61,218,194,0.4)' : '#3ddac2';
+    ctx.fillRect(px, py, PLAYER_W, PLAYER_H*0.7);
+    ctx.fillStyle = flash ? 'rgba(255,201,77,0.4)' : '#ffc94d';
+    ctx.fillRect(px+3, py+4, PLAYER_W-6, 8);
+    ctx.fillStyle = flash ? 'rgba(43,16,85,0.4)' : '#2b1055';
+    ctx.fillRect(px+2, py+PLAYER_H*0.7, 6, PLAYER_H*0.3);
+    ctx.fillRect(px+PLAYER_W-8, py+PLAYER_H*0.7, 6, PLAYER_H*0.3);
+  }
+
+  function render(){
+    drawSky();
+    drawLevel();
+    drawPlayer();
+  }
+
+  function loop(t){
+    if(lastTime===null) lastTime=t;
+    let dt = (t-lastTime)/1000;
+    lastTime = t;
+    dt = Math.min(dt, 0.033);
+    if(mode==='play'){
+      step(dt);
+      render();
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---------------- input ----------------
+  window.addEventListener('keydown', (e)=>{
+    keys[e.key]=true;
+    if((e.key===' '||e.key==='w'||e.key==='ArrowUp') && player && player.grounded && running){
+      player.vy = -JUMP_VEL;
+      player.grounded = false;
+    }
+    if(e.key==='r' || e.key==='R'){ loadLevel(level, playingCustom); }
+    if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  });
+  window.addEventListener('keyup', (e)=>{
+    keys[e.key]=false;
+    if((e.key===' '||e.key==='w'||e.key==='ArrowUp') && player && player.vy<0){
+      player.vy *= 0.45;
+    }
+  });
+
+  function bindHold(el, downFn, upFn){
+    el.addEventListener('mousedown', downFn);
+    el.addEventListener('touchstart', (e)=>{e.preventDefault(); downFn();});
+    el.addEventListener('mouseup', upFn);
+    el.addEventListener('mouseleave', upFn);
+    el.addEventListener('touchend', (e)=>{e.preventDefault(); upFn();});
+  }
+  bindHold(document.getElementById('padLeft'), ()=>keys['ArrowLeft']=true, ()=>keys['ArrowLeft']=false);
+  bindHold(document.getElementById('padRight'), ()=>keys['ArrowRight']=true, ()=>keys['ArrowRight']=false);
+  document.getElementById('padJump').addEventListener('click', ()=>{
+    if(player && player.grounded && running){ player.vy=-JUMP_VEL; player.grounded=false; }
+  });
+
+  document.getElementById('btnRestart').addEventListener('click', ()=>loadLevel(level, playingCustom));
+  document.getElementById('btnReplay').addEventListener('click', ()=>loadLevel(level, playingCustom));
+  document.getElementById('btnRestartCampaign').addEventListener('click', ()=>{
+    campaign = { totalSeconds:0, totalDeaths:0, totalCoinsGot:0, totalCoinsMax: campaign.totalCoinsMax };
+    currentLevelIndex = 0;
+    loadLevel(BUILTIN_LEVELS[0], false);
+  });
+
+  btnNextLevel.addEventListener('click', ()=>{
+    if(overlayMode === 'campaignComplete' || overlayMode === 'gameOver'){
+      campaign = { totalSeconds:0, totalDeaths:0, totalCoinsGot:0, totalCoinsMax: campaign.totalCoinsMax };
+      currentLevelIndex = 0;
+      loadLevel(BUILTIN_LEVELS[0], false);
+    } else {
+      currentLevelIndex = (currentLevelIndex+1) % BUILTIN_LEVELS.length;
+      loadLevel(BUILTIN_LEVELS[currentLevelIndex], false);
+    }
+  });
+
+  // ============================================================
+  // Mode switching
+  // ============================================================
+  let mode = 'play';
+  const tabPlay = document.getElementById('tabPlay');
+  const tabEdit = document.getElementById('tabEdit');
+  const playView = document.getElementById('playView');
+  const editView = document.getElementById('editView');
+
+  tabPlay.addEventListener('click', ()=>{
+    mode='play'; tabPlay.classList.add('active'); tabEdit.classList.remove('active');
+    playView.classList.remove('hidden'); editView.classList.add('hidden');
+  });
+  tabEdit.addEventListener('click', ()=>{
+    mode='edit'; tabEdit.classList.add('active'); tabPlay.classList.remove('active');
+    editView.classList.remove('hidden'); playView.classList.add('hidden');
+    renderEditor();
+  });
+
+  // ============================================================
+  // Editor
+  // ============================================================
+  const editCanvas = document.getElementById('editCanvas');
+  const ectx = editCanvas.getContext('2d');
+  let editGrid = blankGrid(30,15);
+  let editW=30, editH=15;
+  let activeTile = '#';
+  let painting = false;
+  let paintButton = 0;
+
+  const TILE_DEFS = [
+    {ch:'#', swatch:'swatch-ground', label:'Ground'},
+    {ch:'^', swatch:'swatch-spike', label:'Spike'},
+    {ch:'o', swatch:'swatch-coin', label:'Coin'},
+    {ch:'g', swatch:'swatch-goal', label:'Goal'},
+    {ch:'p', swatch:'swatch-player', label:'Player Start'},
+    {ch:'.', swatch:null, label:'Eraser'},
+  ];
+  const paletteEl = document.getElementById('palette');
+  TILE_DEFS.forEach(def=>{
+    const b = document.createElement('div');
+    b.className = 'tile-btn' + (def.ch===activeTile ? ' active':'');
+    if(def.swatch){
+      const sw = document.createElement('div'); sw.className = def.swatch; b.appendChild(sw);
+    } else {
+      b.textContent = '✕';
+    }
+    b.title = def.label;
+    b.addEventListener('click', ()=>{
+      activeTile = def.ch;
+      document.querySelectorAll('.tile-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+    });
+    paletteEl.appendChild(b);
+  });
+
+  function renderEditor(){
+    editCanvas.width = editW*TILE;
+    editCanvas.height = editH*TILE;
+    ectx.fillStyle = '#100a20';
+    ectx.fillRect(0,0,editCanvas.width, editCanvas.height);
+    for(let y=0;y<editH;y++){
+      for(let x=0;x<editW;x++){
+        ectx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ectx.strokeRect(x*TILE, y*TILE, TILE, TILE);
+        const ch = editGrid[y][x];
+        if(ch!=='.'){
+          const px=x*TILE, py=y*TILE;
+          if(ch==='#'){ ectx.fillStyle='#8a6b3f'; ectx.fillRect(px,py,TILE,TILE); }
+          else if(ch==='^'){ ectx.fillStyle='#ff6b5e'; ectx.beginPath(); ectx.moveTo(px,py+TILE); ectx.lineTo(px+TILE/2,py+TILE-24); ectx.lineTo(px+TILE,py+TILE); ectx.closePath(); ectx.fill(); }
+          else if(ch==='o'){ ectx.fillStyle='#ffc94d'; ectx.beginPath(); ectx.arc(px+TILE/2,py+TILE/2,10,0,Math.PI*2); ectx.fill(); }
+          else if(ch==='g'){ ectx.fillStyle='#3ddac2'; ectx.fillRect(px+TILE/2-2,py,4,TILE); ectx.fillRect(px+TILE/2+2,py,16,10); }
+          else if(ch==='p'){ ectx.fillStyle='#3ddac2'; ectx.fillRect(px+6,py+4,TILE-12,TILE-8); }
+        }
+      }
+    }
+  }
+
+  function paintAt(mx,my,button){
+    const rect = editCanvas.getBoundingClientRect();
+    const x = Math.floor((mx-rect.left) / (rect.width/editW));
+    const y = Math.floor((my-rect.top) / (rect.height/editH));
+    if(x<0||y<0||x>=editW||y>=editH) return;
+    const ch = button===2 ? '.' : activeTile;
+    if(ch==='p'){
+      for(let yy=0;yy<editH;yy++) for(let xx=0;xx<editW;xx++) if(editGrid[yy][xx]==='p') editGrid[yy][xx]='.';
+    }
+    editGrid[y][x] = ch;
+    renderEditor();
+  }
+
+  editCanvas.addEventListener('contextmenu', e=>e.preventDefault());
+  editCanvas.addEventListener('mousedown', e=>{ painting=true; paintButton=e.button; paintAt(e.clientX,e.clientY,e.button); });
+  editCanvas.addEventListener('mousemove', e=>{ if(painting) paintAt(e.clientX,e.clientY,paintButton); });
+  window.addEventListener('mouseup', ()=>painting=false);
+  editCanvas.addEventListener('touchstart', e=>{ const t=e.touches[0]; paintAt(t.clientX,t.clientY,0); });
+  editCanvas.addEventListener('touchmove', e=>{ e.preventDefault(); const t=e.touches[0]; paintAt(t.clientX,t.clientY,0); });
+
+  document.getElementById('btnNewLevel').addEventListener('click', ()=>{
+    editW = Math.max(10, Math.min(80, parseInt(document.getElementById('newW').value,10)||30));
+    editH = Math.max(10, Math.min(15, parseInt(document.getElementById('newH').value,10)||15));
+    editGrid = blankGrid(editW, editH);
+    renderEditor();
+  });
+  document.getElementById('btnClearLevel').addEventListener('click', ()=>{
+    editGrid = blankGrid(editW, editH);
+    renderEditor();
+  });
+
+  function editorHasPlayerStart(){
+    return editGrid.some(row=>row.includes('p'));
+  }
+
+  document.getElementById('btnTestPlay').addEventListener('click', ()=>{
+    if(!editorHasPlayerStart()){
+      alert('Place a player start tile before testing.');
+      return;
+    }
+    customLevel = { name:"Custom Level", w:editW, h:editH, tiles: gridToTiles(editGrid) };
+    loadLevel(customLevel, true);
+    tabPlay.click();
+  });
+
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    const data = { name:"Custom Level", w:editW, h:editH, tiles: gridToTiles(editGrid) };
+    document.getElementById('jsonArea').value = JSON.stringify(data, null, 2);
+  });
+  document.getElementById('btnImport').addEventListener('click', ()=>{
+    try{
+      const data = JSON.parse(document.getElementById('jsonArea').value);
+      editW = data.w; editH = data.h;
+      document.getElementById('newW').value = editW;
+      document.getElementById('newH').value = editH;
+      editGrid = data.tiles.map(row=>row.split(''));
+      renderEditor();
+    }catch(err){
+      alert('Could not parse that JSON: '+err.message);
+    }
+  });
+  document.getElementById('btnDownload').addEventListener('click', ()=>{
+    const data = { name:"Custom Level", w:editW, h:editH, tiles: gridToTiles(editGrid) };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'skyline-run-level.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('fileUpload').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      document.getElementById('jsonArea').value = reader.result;
+      document.getElementById('btnImport').click();
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------------- boot ----------------
+  loadLevel(BUILTIN_LEVELS[0], false);
+  renderEditor();
+})();
+</script>
+
+</body>
+</html>
